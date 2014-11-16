@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-@author: nik | Created on Tue Nov 11 23:53:18 2014
+@author: Nikos Alexandris | Created on Tue Nov 11 23:53:18 2014
 """
 
 """
@@ -14,9 +14,8 @@ QuickBird2 Band-Averaged Solar Spectral Irradiance [W/sq.m./μm]
 Retrieving Esun for a band:
     Esun[band]
 """
-Esun = {'Pan': 1381.79,
-        'Blue': 1924.59, 'Green': 1843.08, 'Red': 1574.77,
-        'NIR': 1113.71}
+QB2ESUN = {'Pan': 1381.79,
+           'Blue': 1924.59, 'Green': 1843.08, 'Red': 1574.77, 'NIR': 1113.71}
 
 """
 Factors for Conversion to Top-of-Atmosphere Spectral Radiance
@@ -29,8 +28,8 @@ Structure of the dictionary:
 - Conversion Factors for MSx & Pan (incl. TDI Levels)
     - 2nd: k' revised conversion factors for 8-Bit  products [W/sq.m./sr/count]
     - 3rd: K revised conversion factors for 16-Bit  products [W/sq.m./sr/count]
-    
-Retrieving values:    
+
+Retrieving values:
     band = <Name of Band>
     K[band][0]  # for  Effective BandWidth
     K[band][1]  # for k' (8-bit)
