@@ -1,4 +1,6 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 """
 MODULE:         i.quickbird.toar
 
@@ -137,7 +139,7 @@ tmp_toar = ''
 
 
 # constants
-from quickbird2 import QB2ESUN, KCF
+from quickbir2 import QB2ESUN, KCF
 spectral_bands = KCF.keys()
 
 
@@ -225,12 +227,14 @@ def main():
     # Loop processing over all bands
     # -----------------------------------------------------------------------
     for band in spectral_bands:
+        
+        global tmp_rad
 
-#        # Why is this necessary?  Any function to remove the mapsets name?
-#        if '@' in band:
-#            band_key = (band.split('@')[0])
-#        else:
-#            band_key = band
+        # Why is this necessary?  Any function to remove the mapsets name?
+        if '@' in band:
+            band_key = (band.split('@')[0])
+        else:
+            band_key = band
 
         # -------------------------------------------------------------------
         # Band dependent metadata for Spectral Radiance
@@ -277,7 +281,7 @@ def main():
         # -------------------------------------------------------------------
 
         # inform
-        msg ="Band Parameters set to %s, Bandwidth=%.1f" % (kcf_msg, bw)
+        msg ="Band Parameters set to %s, Bandwidth=%.3f" % (kcf_msg, bw)
         g.message(msg)
 
         # conversion to Radiance based on (1) 
@@ -308,7 +312,7 @@ def main():
             global tmp_toar
             
             esun = float(QB2ESUN[band_key])
-            msg = "Using Esun = %f" % esun
+            msg = "Using Esun = %.2f" % esun
             g.message(msg)
     
             # calculate ToAR  -- tmp_rad is already 32-bit -- see above!
@@ -320,38 +324,40 @@ def main():
             toar = "%s = %f * %s * %f^2 / %f * %f" \
                 % (tmp_toar, math.pi, tmp_rad, esd, esun, sza)
             grass.mapcalc(toar)
+            print tmp_toar, "TMP_TOAR is here!!!"
 
             # strings for metadata
             title_toar="%s band (Top of Atmosphere Reflectance)" % band
             description_toar="Top of Atmosphere %s band spectral Reflectance" \
                 % band
             units_toar="Unitless planetary reflectance"
-            history_toar="K=%f; Bandwidth=%.1f; ESD=%f; Esun=%f; SZA=%.1f" \
+            history_toar="K=%f; Bandwidth=%.1f; ESD=%f; Esun=%.2f; SZA=%.1f" \
                 % (kcf, bw, esd, esun, sza)
 
-    if tmp_toar:
-
-        # history entry
-        run("r.support", map=tmp_toar,
-            title=title_toar, units=units_toar, description=description_toar,
-            source1=source1_toar, source2=source2_toar, history=history_toar)
-
-        # add suffix to basename & rename end product
-#        toar_name = ("%s.%s" % (band, outputsuffix))
-        toar_name = ("%s.%s" % (band.split('@')[0], outputsuffix))
-        run("g.rename", rast=(tmp_toar, toar_name))
-
-    elif tmp_rad:
-
-        # history entry
-        run("r.support", map=tmp_rad,
-            title=title_rad, units=units_rad, description=description_rad,
-            source1=source1_rad, source2=source2_rad, history=history_rad)
-
-        # add suffix to basename & rename end product        
-#        rad_name = ("%s.%s" % (band, outputsuffix))
-        rad_name = ("%s.%s" % (band.split('@')[0], outputsuffix))
-        run("g.rename", rast=(tmp_rad, rad_name))
+        if tmp_toar:
+    
+            # history entry
+            run("r.support", map=tmp_toar,
+                title=title_toar, units=units_toar, description=description_toar,
+                source1=source1_toar, source2=source2_toar, history=history_toar)
+    
+            # add suffix to basename & rename end product
+    #        toar_name = ("%s.%s" % (band, outputsuffix))
+            toar_name = ("%s.%s" % (band.split('@')[0], outputsuffix))
+            run("g.rename", rast=(tmp_toar, toar_name))
+            print tmp_toar, "\nAND HERE ****************************************\n"
+    
+        elif tmp_rad:
+    
+            # history entry
+            run("r.support", map=tmp_rad,
+                title=title_rad, units=units_rad, description=description_rad,
+                source1=source1_rad, source2=source2_rad, history=history_rad)
+    
+            # add suffix to basename & rename end product        
+    #        rad_name = ("%s.%s" % (band, outputsuffix))
+            rad_name = ("%s.%s" % (band.split('@')[0], outputsuffix))
+            run("g.rename", rast=(tmp_rad, rad_name))
 
     # visualising-related information
     if not keep_region:
