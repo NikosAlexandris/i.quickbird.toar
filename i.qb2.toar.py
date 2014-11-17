@@ -1,7 +1,42 @@
 # -*- coding: utf-8 -*-
 """
-AUTHOR:         Nikos Alexandris | Trikala, November 2014 00:47:30 2014
-                Converted from a bash shell script
+MODULE:         i.quickbird.toar
+
+AUTHOR:         Nikos Alexandris <nik@nikosalexandris.net>
+                Converted from a bash shell script | Trikala, November 2014
+
+
+PURPOSE:        Converting QuickBird2 DN values to Spectral Radiance or 
+                    Reflectance
+
+
+                Spectral Radiance -------------------------------------------
+
+                +++
+
+
+                Planetary Reflectance ---------------------------------------
+
+                    ρ(p) = π x L(λ) x d^2 / ESUN(λ) x cos(θ(S))
+
+                where:
+                - ρ: Unitless Planetary Reflectance
+                - π: Mathematical constant
+                - L(λ): Spectral Radiance from equation (1)
+                - d: Earth-Sun distance in astronomical units [calculated using
+                AcquisitionTime class]
+
+
+                Sources -----------------------------------------------------
+
+                +++
+
+
+ COPYRIGHT:    (C) 2014 by the GRASS Development Team
+
+               This program is free software under the GNU General Public
+               License (>=v2). Read the file COPYING that comes with GRASS
+               for details.
 """
 
 #%Module
@@ -77,20 +112,32 @@ AUTHOR:         Nikos Alexandris | Trikala, November 2014 00:47:30 2014
 #% type: integer
 #% label: TDI level
 #% description: TDI-based (time delayed integration) exposure level of the Panchromatic band
-#% options: 10;13;18;24;32
+#% options: 10,13,18,24,32
 #% guisection: Metadata
 #% required: yes
 #%end
 
 # required librairies -------------------------------------------------------
+import os
+import sys
+
+import atexit
+import grass.script as grass
+from grass.pygrass.modules.shortcuts import general as g
+from grass.pygrass.raster.abstract import Info
+
 import math
+from utc_to_esd import AcquisitionTime, jd_to_esd
 
-
-# globals
+# globals -------------------------------------------------------------------
+acq_tim = ''
+tmp = ''
+tmp_rad = ''
+tmp_toar = ''
 
 
 # constants
-from quickbird2 import Esun, KCF
+from quickbird2 import QB2ESUN, KCF
 spectral_bands = KCF.keys()
 
 
@@ -158,13 +205,14 @@ def main():
     # -----------------------------------------------------------------------
 
     acq_utc = AcquisitionTime(utc)  # will hold esd (earth-sun distance)
-    acq_dat = datetime(acq_utc.year, acq_utc.month, acq_utc.day)
+#    acq_dat = datetime(acq_utc.year, acq_utc.month, acq_utc.day)
 
     # Earth-Sun distance
     if doy:
+        g.message("|! Using Day of Year to calculate Earth-Sun distance.")
         esd = jd_to_esd(int(doy))
 
-    elif utc:
+    elif (not doy) and utc:
         esd = acq_utc.esd
 
     else:
@@ -192,43 +240,61 @@ def main():
         if band == 'Pan':
             band_key = band + tdi
             g.message("Processing for %s" % pantdi)
+        else:
+            band_key = band
 
         # some echo...
         g.message("Processing the %s spectral band" % band)
     
         # check bitness
-        if 0 <= images[band].max() <= 255:
+        if 0 <= images[band].max <= 255:
             # 8-bit
-            kcf = float(KFC[band_key][1])
+            kcf = float(KCF[band_key][1])
+            kcf_msg = "k'=" + str(kcf)
         else:
-            # 16-bit
-            kcf = float(KFC[band_key][2])
+            # (11)16-bit
+            kcf = float(KCF[band_key][2])
+            kcf_msg = "K=" + str(kcf)
 
         # effective bandwidth        
-        bw = float(KFC[band_key][0])
+        bw = float(KCF[band_key][0])
 
+        # -------------------------------------------------------------------
+        # Match bands region if... ?
+        # -------------------------------------------------------------------
+
+        if not keep_region:
+            run('g.region', rast=band)   # ## FixMe?
+            msg = "Region matching the %s spectral band" % band
+            g.message(msg)
+
+        elif keep_region:
+            msg = "|! Operating on current region!"
+            g.message(msg)
 
         # -------------------------------------------------------------------
         # Converting to Spectral Radiance
         # -------------------------------------------------------------------
 
         # inform
-        msg ="Band Parameters set to K=%f, Bandwidth=%.1f" % (kcf, bw)
+        msg ="Band Parameters set to %s, Bandwidth=%.1f" % (kcf_msg, bw)
         g.message(msg)
-
-         # set region
-        run('g.region', rast=band)   # ## FixMe?
-        msg = "Region matching the %s spectral band" % band
 
         # conversion to Radiance based on (1) 
         msg = "Radiance = K * DN / Bandwidth"
         g.message(msg)
 
-        rad = "%s = %f * %d / %f" \
-            % (tmp_rad, kcf, dn, bw)  # Attention: 32-bit calculations required
+        # convert    
+        tmp_rad = "%s.Radiance" % tmp  # Temporary Ma
+        rad = "%s = %f * %s / %f" \
+            % (tmp_rad, kcf, band, bw)  # Attention: 32-bit calculations required
         grass.mapcalc(rad)
         
-        # for tmp_rad -- MOVE below
+        
+        # strings for metadata
+        history_rad = rad
+        history_rad += "Conversion Factor=%f; Effective Bandwidth=%.3f" \
+            % (kcf, bw)            
         title_rad=""
         description_rad="Top-of-Atmosphere %s band spectral Radiance [W/m^2/sr/μm]" % band
         units_rad="W / sq.m. / μm / ster"
@@ -246,18 +312,22 @@ def main():
             g.message(msg)
     
             # calculate ToAR  -- tmp_rad is already 32-bit -- see above!
-            msg = "Reflectance = ( π * Radiance * ESD^2 ) / BAND_Esun * cos(SZA)"
+            msg = "Reflectance = ( math.pi * Radiance * ESD^2 ) / BAND_Esun * cos(SZA)"
             g.message(msg)
-    
-            toar = "%s = math.pi * %s * %f^2 / %f * %f" \
-                % (tmp_toar, tmp_rad, esd, esun, sza)
+            
+            # convert
+            tmp_toar = "%s.Reflectance" % tmp  # Spectral Reflectance
+            toar = "%s = %f * %s * %f^2 / %f * %f" \
+                % (tmp_toar, math.pi, tmp_rad, esd, esun, sza)
             grass.mapcalc(toar)
 
-            # for tmp_toar -- MOVE below!
-            title_toar="echo ${BAND} band (Top of Atmosphere Reflectance)"
-            description_toar="Top of Atmosphere %s band spectral Reflectance" % band
+            # strings for metadata
+            title_toar="%s band (Top of Atmosphere Reflectance)" % band
+            description_toar="Top of Atmosphere %s band spectral Reflectance" \
+                % band
             units_toar="Unitless planetary reflectance"
-            history_toar="K=%f; Bandwidth=%.1f; ESD=%f; Esun=%f; SZA=%.1f" % (kcf, bw, esd, esun, sza)
+            history_toar="K=%f; Bandwidth=%.1f; ESD=%f; Esun=%f; SZA=%.1f" \
+                % (kcf, bw, esd, esun, sza)
 
     if tmp_toar:
 
@@ -282,3 +352,16 @@ def main():
 #        rad_name = ("%s.%s" % (band, outputsuffix))
         rad_name = ("%s.%s" % (band.split('@')[0], outputsuffix))
         run("g.rename", rast=(tmp_rad, rad_name))
+
+    # visualising-related information
+    if not keep_region:
+        grass.del_temp_region()  # restoring previous region settings
+    g.message("\n|! Region's resolution restored!")
+    g.message("\n>>> Hint: rebalancing colors "
+              "(i.colors.enhance) may improve appearance of RGB composites!",
+              flags='i')
+
+if __name__ == "__main__":
+    options, flags = grass.parser()
+    atexit.register(cleanup)
+    sys.exit(main())
