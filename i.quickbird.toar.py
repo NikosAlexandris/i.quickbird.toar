@@ -84,12 +84,12 @@ PURPOSE:        Converting QuickBird2 DN values to Spectral Radiance or
 
 #%option
 #% key: utc
-#% key_desc: YYYY_MM_DDThh:mm:ss:ddddddZ;
+#% key_desc: YYYY_MM_DDThh:mm:ss:ddddddZ; or YYYY_MM_DDThh:mm:ss:ddddddZ;
 #% type: string
 #% label: UTC
 #% description: Coordinated Universal Time string as identified in the acquisition's metadata file (.IMD)
 #% guisection: Metadata
-#% required: yes
+#% required: no
 #%end
 
 #%option
@@ -262,15 +262,13 @@ def main():
     # Global Metadata: Earth-Sun distance, Sun Zenith Angle
     # -----------------------------------------------------------------------
 
-    acq_utc = AcquisitionTime(utc)  # will hold esd (earth-sun distance)
-#    acq_dat = datetime(acq_utc.year, acq_utc.month, acq_utc.day)
-
     # Earth-Sun distance
     if doy:
         g.message("|! Using Day of Year to calculate Earth-Sun distance.")
         esd = jd_to_esd(int(doy))
 
     elif (not doy) and utc:
+        acq_utc = AcquisitionTime(utc)  # will hold esd (earth-sun distance)
         esd = acq_utc.esd
 
     else:
