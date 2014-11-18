@@ -188,8 +188,8 @@ KCF = {
 spectral_bands = KCF.keys()
 
 # string for metadata
-source1_rad = source1_toar = '"Radiometric Use of QuickBird Imagery, '
-'Technical Note (2005)," by Keith Krause, Digital Globe'
+source1_rad = source1_toar = '''"Radiometric Use of QuickBird Imagery, Technical Note (2005),"
+by Keith Krause, Digital Globe'''
 source2_rad = source2_toar = ""  # Add some source2?
 
 
@@ -372,7 +372,7 @@ def main():
 
             # convert
             tmp_toar = "%s.Reflectance" % tmp  # Spectral Reflectance
-            toar = "%s = %f * %s * %f^2 / %f * %f" \
+            toar = "%s = %f * %s * %f^2 / %f * cos(%f)" \
                 % (tmp_toar, math.pi, tmp_rad, esd, esun, sza)
             grass.mapcalc(toar, overwrite=True)
 
