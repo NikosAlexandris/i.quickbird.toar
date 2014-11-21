@@ -14,7 +14,17 @@ PURPOSE:        Converting QuickBird2 DN values to Spectral Radiance or
 
                 Spectral Radiance -------------------------------------------
 
-                +++
+                    L(λ|Pixel, Band) = K(Band) * q(Pixel, Band) / Δ(λ|Band)
+
+                where:
+
+                L(λ): Top-of-Atmosphere Spectral Radiance image pixels
+                [W/sq.m./sr/μm]
+                KBand: absolute radiometric calibration factor
+                [W/sq.m./sr/count] for a given band
+                q(Pixel,Band): radiometrically corrected image pixels
+                [countsor  or  Digital Numbers]
+                Δ(λ|Band): effective bandwidth [μm] for a given band.
 
 
                 Planetary Reflectance ---------------------------------------
@@ -31,8 +41,10 @@ PURPOSE:        Converting QuickBird2 DN values to Spectral Radiance or
 
                 Sources -----------------------------------------------------
 
-                Radiometric Use of QuickBird Imagery, Technical Note.
+                - Radiometric Use of QuickBird Imagery, Technical Note.
                 2005-11-07, by Keith Krause.
+                
+                - <http://landsat.usgs.gov/how_is_radiance_calculated.php>
 
 
  COPYRIGHT:    (C) 2014 by the GRASS Development Team
