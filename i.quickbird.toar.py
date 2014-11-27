@@ -43,7 +43,7 @@ PURPOSE:        Converting QuickBird2 DN values to Spectral Radiance or
 
                 - Radiometric Use of QuickBird Imagery, Technical Note.
                 2005-11-07, by Keith Krause.
-                
+
                 - <http://landsat.usgs.gov/how_is_radiance_calculated.php>
 
 
