@@ -96,7 +96,7 @@ PURPOSE:        Converting QuickBird2 DN values to Spectral Radiance or
 
 #%option
 #% key: utc
-#% key_desc: <YYYY_MM_DDThh:mm:ss:ddddddZ;>  or  <YYYY_MM_DDThh:mm:ss>
+#% key_desc: YYYY_MM_DDThh:mm:ss:ddddddZ;  or  YYYY_MM_DDThh:mm:ss
 #% type: string
 #% label: UTC
 #% description: Coordinated Universal Time string as identified in the acquisition's metadata file (.IMD)
